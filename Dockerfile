@@ -19,7 +19,8 @@ COPY src ./src
 RUN ./mvnw clean install -DskipTests
 
 # Stage 2: Create the final image
-FROM openjdk:17-jre-slim
+# Stage 2: Create the final image
+FROM eclipse-temurin:17-jre-jammy
 
 # Set the working directory
 WORKDIR /app
