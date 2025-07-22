@@ -13,35 +13,37 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.web.filter.CorsFilter; // Correct import
-import org.springframework.security.web.authentication.www.BasicAuthenticationFilter; // <--- NEW IMPORT
+import org.springframework.web.filter.CorsFilter;
 import org.springframework.http.HttpMethod; // Existing import
 
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor // Autowires ClerkJwtAuthFilter and CorsFilter
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final ClerkJwtAuthFilter jwtAuthFilter;
-    private final CorsFilter corsFilter; // <--- NEW: Autowire the CorsFilter bean
+    // REMOVE THIS LINE: private final CorsFilter corsFilter; // <--- This line caused the circular dependency
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-        // Add CorsFilter at a very early stage in the filter chain
-        http.addFilterBefore(corsFilter, BasicAuthenticationFilter.class) // <--- ADD THIS LINE
+        // We'll rely on Customizer.withDefaults() to correctly register the CorsFilter bean
+        // defined below, and for Spring Security to handle its order correctly.
+        http.cors(Customizer.withDefaults()) // <--- This is enough to apply the CorsFilter bean
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/webhooks/**").permitAll()
                                 // Permit OPTIONS requests globally before authentication
-                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // <--- Keep this line
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                                 .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
+    // This bean method is correctly defined and will create the CorsFilter instance.
+    // Spring will automatically pick this up and apply it because of http.cors(Customizer.withDefaults()).
     @Bean
     public CorsFilter corsFilter() {
         return new CorsFilter(corsConfigurationSource());
@@ -51,7 +53,7 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
-                "https://quick-invoice-generator-seven.vercel.app" // Your Vercel frontend URL
+                "https://quick-invoice-generator-seven.vercel.app"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
