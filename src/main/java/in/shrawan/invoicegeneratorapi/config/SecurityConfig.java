@@ -14,7 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
-import org.springframework.http.HttpMethod; // Existing import
+import org.springframework.http.HttpMethod;
 
 import java.util.List;
 
@@ -24,13 +24,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final ClerkJwtAuthFilter jwtAuthFilter;
-    // REMOVE THIS LINE: private final CorsFilter corsFilter; // <--- This line caused the circular dependency
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-        // We'll rely on Customizer.withDefaults() to correctly register the CorsFilter bean
-        // defined below, and for Spring Security to handle its order correctly.
-        http.cors(Customizer.withDefaults()) // <--- This is enough to apply the CorsFilter bean
+
+        http.cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/webhooks/**").permitAll()
@@ -42,8 +41,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // This bean method is correctly defined and will create the CorsFilter instance.
-    // Spring will automatically pick this up and apply it because of http.cors(Customizer.withDefaults()).
+
     @Bean
     public CorsFilter corsFilter() {
         return new CorsFilter(corsConfigurationSource());
